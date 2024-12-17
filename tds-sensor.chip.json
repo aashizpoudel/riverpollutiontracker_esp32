@@ -1,0 +1,19 @@
+{
+  "name": "tds-sensor",
+  "author": "Aashish Poudel",
+  "pins": [
+    "VCC",
+    "GND",
+    "OUT"
+  ],
+   "controls": [
+    {
+      "id": "tds",
+      "label": "Analog tds value",
+      "type": "range",
+      "min": 0,
+      "max": 1000,
+      "step": 0.1
+    }
+  ]
+}
