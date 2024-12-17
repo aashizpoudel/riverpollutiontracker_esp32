@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TDS Data Plot</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.10.3/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Real-Time TDS Data</h1>
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+    <canvas id="tdsChart" width="800" height="400"></canvas>
+
+    <script>
+        const brokerUrl = "ws://broker.hivemq.com:8000"; // Replace with your MQTT broker URL
+        const topic = "bsen860/tds"; // Replace with your topic
+
+        let client;
+        let isConnected = false;
+        const dataPoints = [];
+
+        // Chart.js setup
+        const ctx = document.getElementById('tdsChart').getContext('2d');
+        const tdsChart  = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'TDS (ppm)',
+        data: [],
+        borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1
+      }]
+    },
+    options: {
+      scales: {
+        x: {
+            text: 'Time'
+                    },
+        y: {
+          beginAtZero: true,
+          text: "TDS (ppm)"
+        }
+      }
+    }
+  });
+
+        // Add data to chart
+        function addData(timestamp, tdsValue) {
+            if (dataPoints.length >= 100) {
+                dataPoints.shift(); // Remove the oldest data point
+            }
+            dataPoints.push({ x: timestamp, y: tdsValue });
+            tdsChart.data.labels = dataPoints.map(point => point.x);
+            tdsChart.data.datasets[0].data = dataPoints.map(point => point.y);
+            tdsChart.update();
+        }
+
+        // MQTT Connection
+        document.getElementById('connectBtn').addEventListener('click', () => {
+            if (isConnected) return;
+            console.log("Connecting");
+
+            client = mqtt.connect(brokerUrl,{path:"/mqtt"});
+
+            client.on('connect', () => {
+                isConnected = true;
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+                client.subscribe(topic);
+                console.log(`Connected and subscribed to ${topic}`);
+            });
+
+            client.on('message', (topic, message) => {
+                const tdsValue = parseFloat(message.toString());
+                const timestamp = new Date();
+                addData(timestamp, tdsValue);
+                console.log("Received message");
+                console.log(tdsValue);
+            });
+
+            client.on('error', (err) => {
+                console.log(`Connection error: ${err}`);
+                isConnected = false;
+            });
+
+            client.on('close', () => {
+                isConnected = false;
+                console.log('Disconnected');
+            });
+        });
+
+        // Disconnect button
+        document.getElementById('disconnectBtn').addEventListener('click', () => {
+            if (client && isConnected) {
+                client.end();
+                isConnected = false;
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+                console.log('Disconnected from broker');
+            }
+        });
+    </script>
+</body>
+</html>
