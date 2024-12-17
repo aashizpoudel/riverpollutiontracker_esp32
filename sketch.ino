@@ -62,6 +62,7 @@ void loop() {
   MQTT_connect();
   // Serial.print("Analog: ");?
   int data = analogRead(36);
+  data = 1000*data/4095; // Conversion of 12 bit value to tds range of 0 to 1000 ppm.
   photocell.publish((uint32_t)data);
   Serial.print("Published:");
   Serial.println(data);
